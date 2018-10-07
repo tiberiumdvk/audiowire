@@ -3,15 +3,15 @@
 arguments::arguments(int argc, char** argv)
 {
     command = argv[1];
-    object = argv[2];
 
     char* current_flag = nullptr;
 
-    for (int i = 3; i < argc; i++)
+    for (int i = 2; i < argc; i++)
     {
         if (argv[i][0] == '-')
         {
             current_flag = argv[i];
+            flags[current_flag] = "";
         }
         else if (current_flag != nullptr)
         {
@@ -24,4 +24,9 @@ arguments::arguments(int argc, char** argv)
             flags[current_flag] += argv[i];
         }
     }
+}
+
+bool arguments::has_flag(const std::string& flag)
+{
+    return this->flags.count(flag) > 0;
 }
