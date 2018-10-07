@@ -1,21 +1,6 @@
 #include "studio.hpp"
 #include <sstream>
 
-std::list<const audiowire::song*> audiowire::studio::get_song_list_where(std::function<bool(const audiowire::song&)> predicate)
-{
-    std::list<const audiowire::song*> selected_song_list;
-
-    for (auto song : _song_list)
-    {
-        if (predicate(song))
-        {
-            selected_song_list.push_back(&song);
-        }
-    }
-
-    return std::move(selected_song_list);
-}
-
 bool audiowire::studio::open(const std::string& path)
 {
     std::fstream file(path, std::ios::out | std::ios::in | std::ios::app);
@@ -52,36 +37,49 @@ bool audiowire::studio::save(const std::string& path)
     return true;
 }
 
-const std::list<audiowire::song>& audiowire::studio::get_song_list()
+readonly_list audiowire::studio::get_where(std::function<bool(const audiowire::song&)> predicate)
 {
-    return (const std::list<audiowire::song>&)_song_list;
-}
-
-std::list<const audiowire::song*> audiowire::studio::get_song_list_by_artist(const std::string& artist)
-{
-    return get_song_list_where([&artist](const audiowire::song& song)
+    std::vector<audiowire::song*> matching_songs;
+    
+    for (auto& song : _song_list)
     {
-        return song.artist == artist;
-    });
+        if (predicate(song))
+        {
+            matching_songs.push_back(&song);       
+        }
+    }
+
+    return std::move(matching_songs);
 }
 
-std::list<const audiowire::song*> audiowire::studio::get_song_list_by_album(const std::string& album)
+int audiowire::studio::delete_where(std::function<bool(const audiowire::song&)> predicate)
 {
-    return get_song_list_where([&album](const audiowire::song& song)
+    std::vector<audiowire::song> new_songs; // TODO: change "deleting" logic, so it doesn't involve swapping vectors
+    
+    for (int i = 0; i < _song_list.size(); i++)
     {
-        return song.artist == album;
-    });
+        if (!predicate(_song_list[i]))
+        {
+            new_songs.push_back(_song_list[i]);
+        }        
+    }
+
+    int count_deleted = _song_list.size() - new_songs.size();
+
+    _song_list.swap(new_songs);
+
+    return count_deleted;
 }
 
-void audiowire::studio::add_song(const audiowire::song& new_song)
+void audiowire::studio::edit(std::function<void(audiowire::song&)> predicate) // stupid idea but w/e
 {
-    _song_list.push_back(new_song);
-}
-
-void audiowire::studio::remove_song(const std::string& title)
-{
-    _song_list.remove_if([&title](const audiowire::song& song)
+    for (auto& song : _song_list)
     {
-        return song.title == title;
-    });
+        predicate(song);
+    }
+}
+
+void audiowire::studio::add(audiowire::song song)
+{
+    _song_list.push_back(song);
 }
