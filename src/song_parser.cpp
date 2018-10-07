@@ -1,7 +1,7 @@
 #include "song_parser.hpp"
 #include <sstream>
 
-std::string audiowire::song_parser::serialize(std::list<audiowire::song>& song_list)
+std::string audiowire::song_parser::serialize(std::vector<audiowire::song>& song_list)
 {
     std::stringstream sstream;
 
@@ -13,9 +13,9 @@ std::string audiowire::song_parser::serialize(std::list<audiowire::song>& song_l
     return std::move(sstream.str()); // redundant rval cast ?
 }
 
-std::list<audiowire::song> audiowire::song_parser::deserialize(const std::string& serialized_data)
+std::vector<audiowire::song> audiowire::song_parser::deserialize(const std::string& serialized_data)
 {
-    std::list<audiowire::song> song_list;
+    std::vector<audiowire::song> song_list;
 
     audiowire::song current_song;
 

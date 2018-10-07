@@ -1,5 +1,5 @@
 #pragma once
-#include <list>
+#include <vector>
 #include <string>
 #include <functional>
 #include <fstream>
@@ -7,6 +7,8 @@
 #include "song_parser.hpp"
 
 #define STUDIO_FILE_PATH "./studio.awproj"
+
+typedef const std::vector<audiowire::song*> readonly_list;
 
 namespace audiowire
 {
@@ -17,21 +19,17 @@ private:
 
     audiowire::song_parser _song_parser;
 
-    std::list<audiowire::song> _song_list;
-
-    std::list<const audiowire::song*> get_song_list_where(std::function<bool(const audiowire::song&)> predicate);
+    std::vector<audiowire::song> _song_list;
 
 public:
 
     bool open(const std::string& path);
     bool save(const std::string& path);
 
-    const std::list<audiowire::song>& get_song_list();
-    std::list<const audiowire::song*> get_song_list_by_artist(const std::string& artist);
-    std::list<const audiowire::song*> get_song_list_by_album(const std::string& album);
-
-    void add_song(const audiowire::song& new_song);
-    void remove_song(const std::string& title);
+    readonly_list get_where(std::function<bool(const audiowire::song&)> predicate);
+    int delete_where(std::function<bool(const audiowire::song&)> predicate);
+    void edit(std::function<void(audiowire::song&)> predicate);
+    void add(audiowire::song song);
 };
 
 };
