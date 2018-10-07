@@ -6,10 +6,10 @@ STD=c++17
 COMPILE=$(C) $(SRC_DIR)/*.cpp --std=$(STD)
 
 clean:
-	@rm -rf ./build/*
+	@rm -rf $(OUT_DIR)/*
 build-debug:
-	@if [ ! -d "./build" ]; then mkdir build; fi
+	@mkdir -p $(OUT_DIR)
 	@$(COMPILE) -o $(OUT_DIR)/audiowire.debug -g -D DEBUG
 build-release:
-	@if [ ! -d "./build" ]; then mkdir build; fi
+	@mkdir -p $(OUT_DIR)
 	@$(COMPILE) -o $(OUT_DIR)/audiowire
