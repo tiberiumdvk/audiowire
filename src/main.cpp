@@ -1,31 +1,12 @@
 #include <iostream>
-#include <experimental/filesystem>
+#include "cli.hpp"
 #include "arguments.hpp"
 #include "debug.hpp"
 #include "studio.hpp"
 
-void _print_indentet(const char* content)
-{
-    std::cout << "    " << content << std::endl;
-}
-
-void print_help()
-{
-    std::cout << "audiowire [command] [options...]" << std::endl << std::endl;
-    std::cout << "commands:" << std::endl;
-    _print_indentet("add [object] [options...]");
-    _print_indentet("remove [object] [options...]");
-    _print_indentet("edit [object] [options...]");
-    _print_indentet("list [object] [options...]");
-    std::cout << std::endl << "objects:" << std::endl;
-    _print_indentet("song [--title title] [--artist artist] [--album album]");
-    _print_indentet("album [--title title] [--artist artist] [--songs songs...]");
-    _print_indentet("artist [--name name] [--songs songs...] [--albums albums...]");
-}
-
 int main(int argc, char** argv)
 {
-    if (argc < 3)
+    if (argc < 2)
     {   
         print_help();
         return 0;
@@ -33,78 +14,168 @@ int main(int argc, char** argv)
 
     arguments args(argc, argv);
 
-    if (args.command.empty() || args.flags.count("--help") > 0)
+    if (args.has_flag("--help") || args.flags.size() == 0)
     {
-        print_help();
+        print_command_help(args.command);
         return 0;
     }
 
     audiowire::studio studio;
+
     if (!studio.open(STUDIO_FILE_PATH))
     {
         std::cerr << "Error creating or opening file!" << std::endl;            
         return 1;
     }
 
-    if (args.command == "add")
+    // COMMANDS
+    #pragma region LIST
+
+    if (args.command == "list")
     {
-        if (args.object == "song")
+        std::vector<audiowire::song*> songs;
+        
+        if (args.has_flag("--all"))
+        {
+            songs = studio.get_where([](const audiowire::song& song)
+            {
+                return true;
+            });
+        }
+        else if (args.has_flag("--title"))
+        {
+            songs = studio.get_where([&args](const audiowire::song& song)
+            {
+                return song.title == args.flags["--title"];
+            });
+        }
+        else if (args.has_flag("--artist"))
+        {
+            songs = studio.get_where([&args](const audiowire::song& song)
+            {
+                return song.artist == args.flags["--artist"];
+            });
+        }
+        else if (args.has_flag("--album"))
+        {
+            songs = studio.get_where([&args](const audiowire::song& song)
+            {
+                return song.album == args.flags["--album"];
+            });
+        }
+
+        std::cout << "Matching results" << " " << "(" << songs.size() << ")" << std::endl;
+
+        for (auto song : songs)
+        {
+            std::cout << song->title << " - " << song->artist;
+            
+            if (!song->album.empty())
+            {
+                std::cout << " : " << song->album;
+            }
+            
+            std::cout << std::endl;
+        }
+        
+        return 0;
+    }
+
+    #pragma endregion
+
+    #pragma region NEW
+
+    if (args.command == "new")
+    {
+        if (args.has_flag("--title") && args.has_flag("--artist"))
         {
             audiowire::song new_song;
             new_song.title = args.flags["--title"];
             new_song.artist = args.flags["--artist"];
-            new_song.album = args.flags["--album"];
-
-            studio.add_song(new_song);
-        }
-        else if (args.object == "artist")
-        {
+            new_song.album = (args.has_flag("--album"))? args.flags["--album"] : "";
             
-        }
-        else if (args.object == "album")
-        {
+            studio.add(std::move(new_song));
+            studio.save(STUDIO_FILE_PATH);
             
+            return 0;
         }
-        
-        if (!studio.save(STUDIO_FILE_PATH))
-        {
-            std::cerr << "Error creating or opening file!" << std::endl;
-        }
-
-        return 0;
     }
 
-    if (args.command == "remove")
+    #pragma endregion
+
+    #pragma region DELETE
+
+    if (args.command == "delete")
     {
+        int count_deleted = 0;
         
-        
-        return 0;
+        if (args.has_flag("--title"))
+        {
+            count_deleted = studio.delete_where([&args](const audiowire::song& song)
+            {
+                return song.title == args.flags["--title"];
+            });
+        }
+        else if (args.has_flag("--artist"))
+        {
+            count_deleted = studio.delete_where([&args](const audiowire::song& song)
+            {
+                return song.artist == args.flags["--artist"];
+            });
+        }
+        else if (args.has_flag("--album"))
+        {
+            count_deleted = studio.delete_where([&args](const audiowire::song& song)
+            {
+                return song.album == args.flags["--album"];
+            });
+        }
+
+        std::cout << "Deleted songs" << " " << "(" << count_deleted << ")" << std::endl;
+
+        if (count_deleted > 0)
+        {
+            studio.save(STUDIO_FILE_PATH);
+            return 0;
+        }
     }
+
+    #pragma endregion
+
+    #pragma region EDIT
 
     if (args.command == "edit")
     {
-        
-        
-        return 0;
+        if (args.has_flag("--title"))
+        {
+            studio.edit([&args](audiowire::song& song)
+            {
+                if (song.title == args.flags["--title"])
+                {
+                    if (args.has_flag("--new"))
+                    {
+                        song.title = args.flags["--new"];
+                    }
+
+                    if (args.has_flag("--artist"))
+                    {
+                        song.artist = args.flags["--artist"];
+                    }
+
+                    if (args.has_flag("--album"))
+                    {
+                        song.album = args.flags["--album"];
+                    }
+                }
+            });
+
+            studio.save(STUDIO_FILE_PATH);
+            
+            return 0;
+        }
     }
 
-    if (args.command == "list")
-    {
-        if (args.object == "song")
-        {
-            auto& song_list = studio.get_song_list();
-            for (auto& song : song_list)
-            {
-                std::cout << "title:" << song.title << '\n' 
-                << "artist:" << song.artist << '\n' 
-                << "album:" << song.album 
-                << '\n' 
-                << std::endl;
-            }
-        }
-           
-        return 0;
-    }
+    #pragma endregion
 
     print_help();
 }
