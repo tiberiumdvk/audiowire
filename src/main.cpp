@@ -7,7 +7,7 @@
 int main(int argc, char** argv)
 {
     if (argc < 2)
-    {   
+    {
         print_help();
         return 0;
     }
@@ -24,7 +24,7 @@ int main(int argc, char** argv)
 
     if (!studio.open(STUDIO_FILE_PATH))
     {
-        std::cerr << "Error creating or opening file!" << std::endl;            
+        std::cerr << "Error creating or opening file!" << std::endl;
         return 1;
     }
 
@@ -34,7 +34,7 @@ int main(int argc, char** argv)
     if (args.command == "list")
     {
         std::vector<audiowire::song*> songs;
-        
+
         if (args.has_flag("--all"))
         {
             songs = studio.get_where([](const audiowire::song& song)
@@ -69,15 +69,15 @@ int main(int argc, char** argv)
         for (auto song : songs)
         {
             std::cout << song->title << " - " << song->artist;
-            
+
             if (!song->album.empty())
             {
                 std::cout << " : " << song->album;
             }
-            
+
             std::cout << std::endl;
         }
-        
+
         return 0;
     }
 
@@ -93,10 +93,10 @@ int main(int argc, char** argv)
             new_song.title = args.flags["--title"];
             new_song.artist = args.flags["--artist"];
             new_song.album = (args.has_flag("--album"))? args.flags["--album"] : "";
-            
+
             studio.add(std::move(new_song));
             studio.save(STUDIO_FILE_PATH);
-            
+
             return 0;
         }
     }
@@ -108,7 +108,7 @@ int main(int argc, char** argv)
     if (args.command == "delete")
     {
         int count_deleted = 0;
-        
+
         if (args.has_flag("--title"))
         {
             count_deleted = studio.delete_where([&args](const audiowire::song& song)
@@ -128,6 +128,14 @@ int main(int argc, char** argv)
             count_deleted = studio.delete_where([&args](const audiowire::song& song)
             {
                 return song.album == args.flags["--album"];
+            });
+        }
+
+        else if (args.has_flag("--all"))
+        {
+            count_deleted = studio.delete_where([&args](const audiowire::song& song)
+            {
+                return true;
             });
         }
 
@@ -170,7 +178,7 @@ int main(int argc, char** argv)
             });
 
             studio.save(STUDIO_FILE_PATH);
-            
+
             return 0;
         }
     }
